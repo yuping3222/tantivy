@@ -136,7 +136,7 @@ fn main() -> tantivy::Result<()> {
     //     println!("doc_address: {:?}, score: {:?}", doc_address, score);
     // }
 
-
+//fengzhi work ok
 
     let query_parser = QueryParser::for_index(&index, vec![title, body,vector]);
     //vector:0.4,0.5,0.3
