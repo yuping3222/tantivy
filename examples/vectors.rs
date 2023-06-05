@@ -14,9 +14,10 @@ use log::{info, trace};
 // ---
 // Importing tantivy...
 use tantivy::collector::{TopDocs};
-use tantivy::query::{QueryParser, TermQuery, VectorQuery};
+use tantivy::query::{QueryParser, TermQuery, VectorQuery, BooleanQuery};
 use tantivy::schema::*;
 use tantivy::{doc, Index, ReloadPolicy};
+use tantivy_query_grammar::Occur;
 use tempfile::TempDir;
 
 fn main() -> tantivy::Result<()> {
@@ -114,23 +115,41 @@ fn main() -> tantivy::Result<()> {
     let searcher = reader.searcher();
 
     // ### Query
+    // Build a BooleanQuery with two TermQueries
 
-    let v: Vec<f32> = vec![0.4, 0.5, 0.3];
-    let term_query = VectorQuery::new(vector, v);
-    let top_docs = searcher.search(&term_query, &TopDocs::with_limit(10))?;
-    for (score, doc_address) in top_docs {
-        println!("doc_address: {:?}, score: {:?}", doc_address, score);
-    }
+    // let term_query1 = TermQuery::new(
+    //     Term::from_field_text(title, "sea"),
+    //     IndexRecordOption::Basic,
+    // );
 
 
-/* 
-    let query_parser = QueryParser::for_index(&index, vec![title, body]);
-    let query = query_parser.parse_query("sea whale")?;
+
+    // let v: Vec<f32> = vec![0.4, 0.5, 0.3];
+    // let term_query = VectorQuery::new(vector, v);
+    // println!("Parsed query: {:?}", term_query);
+    // let boolean_query = BooleanQuery::new(vec![
+    //     (Occur::Must,  Box::new(term_query1)),
+    //     (Occur::Should,  Box::new(term_query)),
+    // ]);
+    // let top_docs = searcher.search(&term_query1, &TopDocs::with_limit(10))?;
+    // for (score, doc_address) in top_docs {
+    //     println!("doc_address: {:?}, score: {:?}", doc_address, score);
+    // }
+
+
+
+    let query_parser = QueryParser::for_index(&index, vec![title, body,vector]);
+    //vector:0.4,0.5,0.3
+    let query = query_parser.parse_query("vector:0.4,0.5,0.3")?;
+    
+    println!("Parsed query: {:?}", query);
+
     let top_docs = searcher.search(&query, &TopDocs::with_limit(10))?;
     for (_score, doc_address) in top_docs {
+        println!("doc_address: {:?}, score: {:?}", doc_address, _score);
         let retrieved_doc = searcher.doc(doc_address)?;
-        println!("{}", schema.to_json(&retrieved_doc));
+        println!("fengzhi{}", schema.to_json(&retrieved_doc));
     }
-*/
+
     Ok(())
 }

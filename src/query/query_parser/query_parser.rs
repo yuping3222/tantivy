@@ -7,6 +7,7 @@ use crate::query::PhraseQuery;
 use crate::query::Query;
 use crate::query::RangeQuery;
 use crate::query::TermQuery;
+use crate::query::VectorQuery;
 use crate::query::{AllQuery, BoostQuery};
 use crate::schema::{Facet, FacetParseError, IndexRecordOption};
 use crate::schema::{Field, Schema};
@@ -377,7 +378,8 @@ impl QueryParser {
                 Ok(vec![(0, term)])
             }
             FieldType::Vector(_) => {
-                let v: Vec<f32> = phrase.split(',').map(|s| s.parse().unwrap()).collect();
+                let mut v: Vec<f32> = phrase.split(',').map(|s| s.parse().unwrap()).collect();
+                // v.insert(0, 0.001);
                 let term = Term::from_field_vector(field, &v);
                 Ok(vec![(0, term)])
             }
@@ -545,7 +547,36 @@ impl QueryParser {
 
 fn convert_literal_to_query(logical_literal: LogicalLiteral) -> Box<dyn Query> {
     match logical_literal {
-        LogicalLiteral::Term(term) => Box::new(TermQuery::new(term, IndexRecordOption::WithFreqs)),
+        LogicalLiteral::Term(mut term)  => 
+        {
+            match term {
+                Term(ref mut vec) => match vec.last() {
+                    Some(first_element) => {
+                        if (*first_element == u8::MAX)
+                        {
+                            // vec.pop();
+                            let converted_output: Vec<f32> = vec[4..vec.len().saturating_sub(1)]
+                            .chunks_exact(4)
+                            .map(|bytes| {
+                                let mut array = [0u8; 4];
+                                array.copy_from_slice(bytes);
+                                f32::from_be_bytes(array)
+                            })
+                            .collect();
+                            Box::new(VectorQuery::new(term.field(),converted_output))
+                        }else {
+                            Box::new(TermQuery::new(term, IndexRecordOption::WithFreqs))
+                        }
+                    }
+                    None => {
+                        println!("Term is an empty vector.");
+                        Box::new(TermQuery::new(term, IndexRecordOption::WithFreqs))
+                    }
+                },
+            }
+            
+            
+        }
         LogicalLiteral::Phrase(term_with_offsets) => {
             Box::new(PhraseQuery::new_with_offset(term_with_offsets))
         }

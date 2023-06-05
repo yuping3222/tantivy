@@ -13,9 +13,13 @@ const INT_TERM_LEN: usize = 4 + 8;
 ///
 /// It actually wraps a `Vec<u8>`.
 #[derive(Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
-pub struct Term<B = Vec<u8>>(B)
+pub struct Term<B = Vec<u8>>(pub B)
 where
     B: AsRef<[u8]>;
+// pub struct Term<B = Vec<u8>, E>(B, E);
+// where
+//     B: AsRef<[u8]>,
+//     E: bool;
 
 impl Term {
     pub(crate) fn new() -> Term {
@@ -153,7 +157,8 @@ impl Term {
     /// Sets the value of a `Vector` field.
     pub fn set_vector(&mut self, vector: &Vec<f32>) {
         self.0.resize(4, 0u8);
-        let output: Vec<u8> = vector.iter().flat_map(|val| val.to_be_bytes()).collect();
+        let mut output: Vec<u8> = vector.iter().flat_map(|val| val.to_be_bytes()).collect();
+        output.push( u8::MAX);
         self.0.extend(output);
     }
 
